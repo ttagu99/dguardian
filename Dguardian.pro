@@ -13,11 +13,13 @@ TEMPLATE = app
 
 INCLUDEPATH += /usr/include/opencv
 LIBS += -L /usr/lib -lopencv_core -lopencv_imgcodecs -lopencv_highgui -lopencv_videoio
+LIBS += -L /usr/lib -lopencv_imgproc
 
 SOURCES += main.cpp\
         mainwindow.cpp
 
 HEADERS  += mainwindow.h \
-    onboardgrab.h
+    onboardgrab.h \
+    cvimagewidget.h
 
 FORMS    += mainwindow.ui

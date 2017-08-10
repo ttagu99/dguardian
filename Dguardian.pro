@@ -13,7 +13,7 @@ TEMPLATE = app
 
 INCLUDEPATH += /usr/include/opencv
 LIBS += -L /usr/lib -lopencv_core -lopencv_imgcodecs -lopencv_highgui -lopencv_videoio
-LIBS += -L /usr/lib -lopencv_imgproc
+LIBS += -L /usr/lib -lopencv_imgproc -lopencv_cudaimgproc -lopencv_cudaobjdetect
 
 SOURCES += main.cpp\
         mainwindow.cpp
@@ -23,3 +23,6 @@ HEADERS  += mainwindow.h \
     cvimagewidget.h
 
 FORMS    += mainwindow.ui
+
+DISTFILES += \
+    haarcascade_frontalface_default.xml

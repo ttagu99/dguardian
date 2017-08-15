@@ -25,7 +25,12 @@ public:
 private:
     Ui::MainWindow *ui;
     int timerId;
-    Ptr<cuda::CascadeClassifier> cascade_gpu;
+    Ptr<cuda::CascadeClassifier> cascade_frontface_default;
+    Ptr<cuda::CascadeClassifier> cascade_eye_glass_default;
+    Ptr<cuda::CascadeClassifier> cascade_eye_default;
+    Ptr<cuda::CascadeClassifier> cascade_frontface_tree;
+
+    VideoCapture cap;
 protected:
     void timerEvent(QTimerEvent *event);
 

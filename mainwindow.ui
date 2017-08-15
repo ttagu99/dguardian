@@ -30,11 +30,14 @@
    <widget class="QWidget" name="widget" native="true">
     <property name="geometry">
      <rect>
-      <x>490</x>
-      <y>150</y>
-      <width>120</width>
-      <height>80</height>
+      <x>230</x>
+      <y>40</y>
+      <width>231</width>
+      <height>171</height>
      </rect>
+    </property>
+    <property name="autoFillBackground">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QOpenGLWidget" name="openGLWidget">

@@ -14,9 +14,14 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    string cascadeName = "/home/nvidia/opencv/data/haarcascades_cuda/haarcascade_frontalface_default.xml";
-    cascade_gpu = cuda::CascadeClassifier::create(cascadeName);
-    timerId = startTimer(1000/3);
+    string frontfaceDefaultXml = "../haarcascade_frontalface_default.xml";
+    cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
+
+    timerId = startTimer(1000/25);
+
+    cap = VideoCapture(1);
+    cap.set(CV_CAP_PROP_FPS, 25);
+
 }
 
 MainWindow::~MainWindow()
@@ -27,12 +32,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-     CVImageWidget* imageWidget = new CVImageWidget();
-     //ui->widget->set(imageWidget);
-     this->setCentralWidget(imageWidget);
+     //CVImageWidget* imageWidget = new CVImageWidget();
+     CVImageWidget imageWidget(ui->widget);
+     //this->setCentralWidget(imageWidget);
      // Load an image
-     VideoCapture cap(1);
-     //cap.set(CV_CAP_PROP_FPS, 25);
 
      cv::Mat image;
      //cascade.load(cascadeName);
@@ -49,20 +52,21 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
      vector<cv::Rect> faces;
 
-     double scaleFactor = 1.2;
-     bool findLargestObject = true;
+     double scaleFactor = 1.1;
+     bool findLargestObject = false;
      bool filterRects = true;
-     cuda::GpuMat  facesBuf_gpu;
-     cascade_gpu->setFindLargestObject(findLargestObject);
-     cascade_gpu->setScaleFactor(scaleFactor);
-     cascade_gpu->setMinNeighbors((filterRects || findLargestObject) ? 4 : 0);
-     cascade_gpu->detectMultiScale(grayframe, facesBuf_gpu);
-     cascade_gpu->convert(facesBuf_gpu, faces);
+     cuda::GpuMat  Buf_gpu;
+     cascade_frontface_default->setFindLargestObject(findLargestObject);
+     cascade_frontface_default->setScaleFactor(scaleFactor);
+     cascade_frontface_default->setMinNeighbors((filterRects || findLargestObject) ? 4 : 0);
+     cascade_frontface_default->detectMultiScale(grayframe, Buf_gpu);
+     cascade_frontface_default->convert(Buf_gpu, faces);
 
-     for(unsigned int facenum=0;facenum<faces.size();++facenum)
+     for(unsigned int idx=0;idx<faces.size();++idx)
      {
-        cv::rectangle(image,faces[facenum],Scalar(0,0,255));
+        cv::rectangle(image,faces[idx],Scalar(0,0,255));
      }
 
-     imageWidget->showImage(image);
+
+     imageWidget.showImage(image);
 }

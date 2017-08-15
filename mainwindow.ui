@@ -17,37 +17,14 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>66</x>
-      <y>190</y>
-      <width>151</width>
-      <height>151</height>
+      <x>0</x>
+      <y>0</y>
+      <width>641</width>
+      <height>481</height>
      </rect>
     </property>
     <property name="text">
      <string>TextLabel</string>
-    </property>
-   </widget>
-   <widget class="QWidget" name="widget" native="true">
-    <property name="geometry">
-     <rect>
-      <x>230</x>
-      <y>40</y>
-      <width>231</width>
-      <height>171</height>
-     </rect>
-    </property>
-    <property name="autoFillBackground">
-     <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QOpenGLWidget" name="openGLWidget">
-    <property name="geometry">
-     <rect>
-      <x>270</x>
-      <y>340</y>
-      <width>300</width>
-      <height>200</height>
-     </rect>
     </property>
    </widget>
   </widget>

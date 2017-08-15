@@ -13,7 +13,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
     string frontfaceDefaultXml = "../haarcascade_frontalface_default.xml";
     cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
 
@@ -32,11 +31,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-     //CVImageWidget* imageWidget = new CVImageWidget();
-     CVImageWidget imageWidget(ui->widget);
-     //this->setCentralWidget(imageWidget);
-     // Load an image
-
      cv::Mat image;
      //cascade.load(cascadeName);
      if (cuda::getCudaEnabledDeviceCount() == 0)
@@ -67,6 +61,38 @@ void MainWindow::timerEvent(QTimerEvent *event)
         cv::rectangle(image,faces[idx],Scalar(0,0,255));
      }
 
+     ui->label->setPixmap(QPixmap::fromImage(putImage(image)));
+}
 
-     imageWidget.showImage(image);
+
+QImage MainWindow::putImage(const Mat& mat)
+{
+    // 8-bits unsigned, NO. OF CHANNELS=1
+    if(mat.type()==CV_8UC1)
+    {
+        // Set the color table (used to translate colour indexes to qRgb values)
+        QVector<QRgb> colorTable;
+        for (int i=0; i<256; i++)
+            colorTable.push_back(qRgb(i,i,i));
+        // Copy input Mat
+        const uchar *qImageBuffer = (const uchar*)mat.data;
+        // Create QImage with same dimensions as input Mat
+        QImage img(qImageBuffer, mat.cols, mat.rows, mat.step, QImage::Format_Indexed8);
+        img.setColorTable(colorTable);
+        return img;
+    }
+    // 8-bits unsigned, NO. OF CHANNELS=3
+    if(mat.type()==CV_8UC3)
+    {
+        // Copy input Mat
+        const uchar *qImageBuffer = (const uchar*)mat.data;
+        // Create QImage with same dimensions as input Mat
+        QImage img(qImageBuffer, mat.cols, mat.rows, mat.step, QImage::Format_RGB888);
+        return img.rgbSwapped();
+    }
+    else
+    {
+        qDebug() << "ERROR: Mat could not be converted to QImage.";
+        return QImage();
+    }
 }

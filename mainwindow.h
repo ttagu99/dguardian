@@ -31,8 +31,12 @@ private:
     Ptr<cuda::CascadeClassifier> cascade_frontface_tree;
 
     VideoCapture cap;
+
+    QImage putImage(const Mat& mat);
 protected:
     void timerEvent(QTimerEvent *event);
+
+
 
 };
 

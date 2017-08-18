@@ -24,18 +24,21 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    int timerId;
-    Ptr<cuda::CascadeClassifier> cascade_frontface_default;
-    Ptr<cuda::CascadeClassifier> cascade_eye_glass_default;
-    Ptr<cuda::CascadeClassifier> cascade_eye_default;
-    Ptr<cuda::CascadeClassifier> cascade_frontface_tree;
+    int m_outerCamTimerID;
+    int m_innerCamTimerID;
 
-    VideoCapture cap;
+    map<int,int> m_mapTimer;
+    Ptr<cuda::CascadeClassifier> cascade_frontface_default;
+
+    VideoCapture m_outerCap;
 
     QImage putImage(const Mat& mat);
+    
+    Rect getLargestRect(vector<Rect> rects);
+    Rect extractFace(Mat image);
+    
 protected:
     void timerEvent(QTimerEvent *event);
-
 
 
 };

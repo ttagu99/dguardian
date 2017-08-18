@@ -11,16 +11,31 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Dguardian
 TEMPLATE = app
 
-INCLUDEPATH += /usr/include/opencv
-LIBS += -L /usr/lib -lopencv_core -lopencv_imgcodecs -lopencv_highgui -lopencv_videoio
-LIBS += -L /usr/lib -lopencv_imgproc -lopencv_cudaimgproc -lopencv_cudaobjdetect
+INCLUDEPATH += /usr/local/include \
+           /home/daewoo/caffe/include \
+           /home/daewoo/caffe/build/include \
+           /usr/include/boost \
+           /usr/local/cuda/include
+
+LIBS += -L"/usr/local/lib" \
+        -L"/home/daewoo/caffe/build/lib" \
+        -L"/usr/lib/x86_64-linux-gnu" \
+        -lopencv_core -lopencv_imgcodecs -lopencv_highgui \
+        -lopencv_videoio \
+        -lopencv_imgproc -lopencv_cudaimgproc \
+        -lopencv_cudaobjdetect \
+        -lcaffe-nv \
+        -lboost_system
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    caffeclassifier.cpp
 
 HEADERS  += mainwindow.h \
     onboardgrab.h \
-    cvimagewidget.h
+    cvimagewidget.h \
+    caffeclassifier.h
+
 
 FORMS    += mainwindow.ui
 

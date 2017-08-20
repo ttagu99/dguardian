@@ -33,12 +33,12 @@ private:
     Ptr<cuda::CascadeClassifier> cascade_frontface_default;
 
     VideoCapture m_outerCap;
-
+    VideoCapture m_innerCap;
     QImage putImage(const Mat& mat);
     
     Rect getLargestRect(vector<Rect> rects);
     Rect extractFace(Mat image);
-    CaffeClassifier face_classifier;
+    CaffeClassifier m_face_classifier;
 
 protected:
     void timerEvent(QTimerEvent *event);

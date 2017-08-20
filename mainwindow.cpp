@@ -4,7 +4,6 @@
 #include <QDebug>
 #include "cvimagewidget.h"
 #include <caffe/caffe.hpp>
-#include <opencv2/dnn.hpp>
 using namespace cv;
 using namespace std;
 
@@ -14,13 +13,23 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->label_outer_dscript->setText("Outer Camera");
+    ui->label_inner_dscript->setText("Inner Camera");
+    QFont font = ui->label_outer_dscript->font();
+    font.setPointSize(19);
+    font.setBold(true);
+    ui->label_outer_dscript->setFont(font);
+    ui->label_inner_dscript->setFont(font);
+
+
+
     if (cuda::getCudaEnabledDeviceCount() == 0)
     {
         qDebug() << "No GPU found or the library is compiled without CUDA support";
     }
 
     string model_file = "../dguardian/deploy.prototxt";
-    string trained_file= "../dguardian/caffenet_face_iter_10000.caffemodel";
+    string trained_file= "../dguardian/caffenet_face_iter_20000.caffemodel";
     string mean_file= "../dguardian/train.binaryproto";
     string label_file= "../dguardian/synset_words.txt";
 
@@ -29,8 +38,8 @@ MainWindow::MainWindow(QWidget *parent) :
     int nGpuNum = 0;
 
 
-    face_classifier.loadModel(model_file, trained_file, mean_file, label_file, true, nBatchSize, nGpuNum);
-    face_classifier.setFcn(false);
+    m_face_classifier.loadModel(model_file, trained_file, mean_file, label_file, true, nBatchSize, nGpuNum);
+    m_face_classifier.setFcn(false);
 
     string frontfaceDefaultXml = "../dguardian/haarcascade_frontalface_default.xml";
     cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
@@ -40,10 +49,11 @@ MainWindow::MainWindow(QWidget *parent) :
     m_mapTimer[m_outerCamTimerID] = 0;
     m_mapTimer[m_innerCamTimerID] = 1;
 
-    m_outerCap = VideoCapture(0);
+    m_outerCap = VideoCapture(1);
     m_outerCap.set(CV_CAP_PROP_FPS, 25);
 
-
+    m_innerCap = VideoCapture(2);
+    m_innerCap.set(CV_CAP_PROP_FPS, 25);
 }
 
 MainWindow::~MainWindow()
@@ -60,13 +70,12 @@ void MainWindow::timerEvent(QTimerEvent *event)
         case 0:
         {
              cv::Mat image;
-
              m_outerCap >> image;
              Rect faceRect = extractFace(image);
              if(faceRect.width > 100)
              {
                  Mat imgFace = image(faceRect);
-                 vector<Prediction> v_who = face_classifier.ClassifyOverSample(imgFace,1,10);
+                 vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,10);
                  string strWho = v_who.front().first;
                  
                  size_t nDaewoo = strWho.find("Daewoo");
@@ -75,14 +84,24 @@ void MainWindow::timerEvent(QTimerEvent *event)
                  {
                      strWho = "Others";
                  }
-                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
+                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,3.0,CV_RGB(0,255,0),3.0);
 
-                 rectangle(image,faceRect,Scalar(0,0,255));
+                 rectangle(image,faceRect,Scalar(0,0,255),3);
 
              }
-
-             ui->label->setPixmap(QPixmap::fromImage(putImage(image)));
+             ui->label_outer->setPixmap(QPixmap::fromImage(putImage(image)));
             break;
+        }
+        case 1:
+        {
+            cv::Mat image;
+            m_innerCap >> image;
+            Rect faceRect = extractFace(image);
+            if(faceRect.width > 100)
+            {
+                rectangle(image,faceRect,Scalar(0,0,255),3);
+            }
+            ui->label_inner->setPixmap(QPixmap::fromImage(putImage(image)));
         }
         default :
         {

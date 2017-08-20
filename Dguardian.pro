@@ -11,20 +11,20 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Dguardian
 TEMPLATE = app
 
-INCLUDEPATH += /usr/local/include \
-           /home/daewoo/caffe/include \
-           /home/daewoo/caffe/build/include \
+INCLUDEPATH += /usr/include \
+           /home/nvidia/caffe/include \
+           /home/nvidia/caffe/build/include \
            /usr/include/boost \
            /usr/local/cuda/include
 
-LIBS += -L"/usr/local/lib" \
-        -L"/home/daewoo/caffe/build/lib" \
-        -L"/usr/lib/x86_64-linux-gnu" \
+LIBS += -L"/usr/lib" \
+        -L"/home/nvidia/caffe/build/lib" \
+        -L"/usr/lib/aarch-linux-gnu" \
         -lopencv_core -lopencv_imgcodecs -lopencv_highgui \
         -lopencv_videoio \
         -lopencv_imgproc -lopencv_cudaimgproc \
         -lopencv_cudaobjdetect \
-        -lcaffe-nv \
+        -lcaffe \
         -lboost_system \
         -lglog
 

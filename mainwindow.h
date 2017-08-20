@@ -8,6 +8,8 @@
 #include "opencv2/cudaobjdetect.hpp"
 #include "opencv2/cudaimgproc.hpp"
 #include "opencv2/cudawarping.hpp"
+#include "caffeclassifier.h"
+
 using namespace std;
 using namespace cv;
 namespace Ui {
@@ -36,7 +38,8 @@ private:
     
     Rect getLargestRect(vector<Rect> rects);
     Rect extractFace(Mat image);
-    
+    CaffeClassifier face_classifier;
+
 protected:
     void timerEvent(QTimerEvent *event);
 

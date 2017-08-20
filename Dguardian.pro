@@ -25,7 +25,8 @@ LIBS += -L"/usr/local/lib" \
         -lopencv_imgproc -lopencv_cudaimgproc \
         -lopencv_cudaobjdetect \
         -lcaffe-nv \
-        -lboost_system
+        -lboost_system \
+        -lglog
 
 SOURCES += main.cpp\
         mainwindow.cpp \

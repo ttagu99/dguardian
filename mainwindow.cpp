@@ -4,7 +4,7 @@
 #include <QDebug>
 #include "cvimagewidget.h"
 #include <caffe/caffe.hpp>
-
+#include <opencv2/dnn.hpp>
 using namespace cv;
 using namespace std;
 
@@ -19,6 +19,9 @@ MainWindow::MainWindow(QWidget *parent) :
         qDebug() << "No GPU found or the library is compiled without CUDA support";
     }
 
+    face_classifier.loadModel(model_file, trained_file, mean_file, label_file, true, nBatchSize, nGpuNum);
+    face_classifier.setFcn(false);
+
     string frontfaceDefaultXml = "../dguardian/haarcascade_frontalface_default.xml";
     cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
 
@@ -29,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     m_outerCap = VideoCapture(0);
     m_outerCap.set(CV_CAP_PROP_FPS, 25);
+
 
 }
 

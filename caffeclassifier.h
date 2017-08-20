@@ -1,9 +1,17 @@
 #pragma once
 #include <caffe/caffe.hpp>
-#include <opencv2/opencv.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <algorithm>
+#include <iosfwd>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
-using namespace caffe;
-using namespace cv;
+using namespace caffe;  // NOLINT(build/namespaces)
+using std::string;
 
 /* Pair (label, confidence) representing a prediction. */
 typedef std::pair<string, float> Prediction;
@@ -65,8 +73,6 @@ private:
 
 private:
     boost::shared_ptr<Net<float> > net_;
-
-
     cv::Size input_geometry_;
     int batch_size_;
     int num_channels_;

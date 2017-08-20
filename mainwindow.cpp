@@ -19,6 +19,16 @@ MainWindow::MainWindow(QWidget *parent) :
         qDebug() << "No GPU found or the library is compiled without CUDA support";
     }
 
+    string model_file = "../dguardian/deploy.prototxt";
+    string trained_file= "../dguardian/caffenet_face_iter_10000.caffemodel";
+    string mean_file= "../dguardian/train.binaryproto";
+    string label_file= "../dguardian/synset_words.txt";
+
+    const int nBatchSize = 10;
+    const int nOverSample = 10;
+    int nGpuNum = 0;
+
+
     face_classifier.loadModel(model_file, trained_file, mean_file, label_file, true, nBatchSize, nGpuNum);
     face_classifier.setFcn(false);
 
@@ -54,7 +64,22 @@ void MainWindow::timerEvent(QTimerEvent *event)
              m_outerCap >> image;
              Rect faceRect = extractFace(image);
              if(faceRect.width > 100)
-                rectangle(image,faceRect,Scalar(0,0,255));
+             {
+                 Mat imgFace = image(faceRect);
+                 vector<Prediction> v_who = face_classifier.ClassifyOverSample(imgFace,1,10);
+                 string strWho = v_who.front().first;
+                 
+                 size_t nDaewoo = strWho.find("Daewoo");
+
+                 if(nDaewoo==string::npos)
+                 {
+                     strWho = "Others";
+                 }
+                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
+
+                 rectangle(image,faceRect,Scalar(0,0,255));
+
+             }
 
              ui->label->setPixmap(QPixmap::fromImage(putImage(image)));
             break;

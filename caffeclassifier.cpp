@@ -151,16 +151,6 @@ bool CaffeClassifier::isFcn()
 vector<cv::Mat> CaffeClassifier::OverSampleSub(const cv::Mat img, int nOverSample, cv::Mat mean)
 {
     cv::Mat resultImg = img;
-    int srcW = resultImg.cols;
-    int srcH = resultImg.rows;
-    if (srcH > srcW)
-    {
-        cv::transpose(resultImg, resultImg);
-        cv::flip(resultImg, resultImg, 1);
-        srcW = resultImg.cols;
-        srcH = resultImg.rows;
-    }
-
     cv::Mat resizeMean = mean;
 
     cv::Mat sample_float;
@@ -169,22 +159,9 @@ vector<cv::Mat> CaffeClassifier::OverSampleSub(const cv::Mat img, int nOverSampl
     else
         resultImg.convertTo(sample_float, CV_32FC1);
 
-    cv::resize(resizeMean, resizeMean, cv::Size(srcW, srcH));
+    cv::resize(sample_float, sample_float, resizeMean.size());
     cv::Mat sample_normalized;
     cv::subtract(sample_float, resizeMean, sample_normalized);
-
-    //cv::Mat debugImg;
-    //sample_float.convertTo(debugImg, CV_8UC3);
-    //resize(debugImg, debugImg, debugImg.size() / 10);
-    //imshow("src", debugImg);
-    //resizeMean.convertTo(debugImg, CV_8UC3);
-    //resize(debugImg, debugImg, debugImg.size() / 10);
-    //imshow("mean", debugImg);
-    //sample_normalized.convertTo(debugImg, CV_8UC3);
-    //resize(debugImg, debugImg, debugImg.size() / 10);
-    //imshow("normalized", debugImg);
-    //waitKey(0);
-
 
     return OverSample(sample_normalized, nOverSample);
 }
@@ -273,43 +250,6 @@ vector<cv::Mat> CaffeClassifier::OverSample(const vector<cv::Mat> vImgs, int siz
 
     return vRetImgs;
 }
-//
-//vector<vector<Prediction>> CaffeClassifier::ClassifyOverSample(const vector<cv::Mat> vImg, int num_classes, int num_overSample)
-//{
-//	vector<cv::Mat> vOverSampleImg = OverSample(vImg, num_overSample);
-//
-//	vector<float> output_batch = PredictBatch(vOverSampleImg);
-//	vector<vector<float>> vVecOutput;
-//
-//	for (int imgIdx = 0; imgIdx < vImg.size(); imgIdx++)
-//	{
-//		vector<float> VecOutput;
-//		for (int i = 0; i < labels_.size(); i++)
-//			VecOutput.push_back(0.0);
-//
-//		for (int i = labels_.size()*num_overSample*imgIdx; i < labels_.size()*num_overSample*(imgIdx + 1); i++)
-//		{
-//			int idx = i% labels_.size();
-//			VecOutput[idx] += (output_batch[i] / num_overSample);
-//		}
-//		vVecOutput.push_back(VecOutput);
-//	}
-//
-//	vector<vector<Prediction>> vPrediction_single;
-//	for (int i = 0; i < vImg.size(); i++)
-//	{
-//		std::vector<Prediction> prediction_single;
-//		vector<int> maxN = Argmax(vVecOutput[i], num_classes);
-//		for (int c = 0; c < num_classes; ++c)
-//		{
-//			int idx = maxN[c];
-//			prediction_single.push_back(std::make_pair(labels_[idx], vVecOutput[i][idx]));
-//		}
-//		vPrediction_single.push_back(prediction_single);
-//	}
-//
-//	return vPrediction_single;
-//}
 
 vector< vector< Prediction > > CaffeClassifier::ClassifyFcnBatch(const vector<cv::Mat> img, int num_classes)
 {

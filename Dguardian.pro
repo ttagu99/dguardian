@@ -41,4 +41,7 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui
 
 DISTFILES += \
-    haarcascade_frontalface_default.xml
+    haarcascade_frontalface_default.xml \
+    train.binaryproto \
+    deploy.prototxt \
+    synset_words.txt

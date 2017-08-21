@@ -35,13 +35,15 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     string model_file = "../dguardian/deploy.prototxt";
-    string trained_file= "../dguardian/caffenet_face_iter_110000.caffemodel";
+    string trained_file= "../dguardian/caffenet_face_iter_20000.caffemodel";
     string mean_file= "../dguardian/train.binaryproto";
     string label_file= "../dguardian/synset_words.txt";
 
     const int nBatchSize = 1;
-    const int nOverSample = 1;
     int nGpuNum = 0;
+    m_scaleFactor = 1.01;
+    m_findLargestObject = true;
+    m_filterRects = true;
 
 
     m_face_classifier.loadModel(model_file, trained_file, mean_file, label_file, true, nBatchSize, nGpuNum);
@@ -49,17 +51,26 @@ MainWindow::MainWindow(QWidget *parent) :
 
     string frontfaceDefaultXml = "../dguardian/haarcascade_frontalface_default.xml";
     cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
+    cascade_frontface_default->setFindLargestObject(m_findLargestObject);
+    cascade_frontface_default->setScaleFactor(m_scaleFactor);
+    cascade_frontface_default->setMinNeighbors(6);
+    cascade_frontface_default->setMinObjectSize(Size(50,50));
+    cascade_frontface_default->setMaxNumObjects(2);
+    cascade_frontface_default->setMaxObjectSize(Size(500,400));
 
-    m_outerCamTimerID = startTimer(1000/6);
-    m_innerCamTimerID = startTimer(1000/6);
+
+    string handDefaultXml = "../dguardian/hand.xml";
+    cascade_hand_default = CascadeClassifier(handDefaultXml);
+
+    m_outerCamTimerID = startTimer(1000/10);
+    m_innerCamTimerID = startTimer(1000/10);
     m_mapTimer[m_outerCamTimerID] = 0;
     m_mapTimer[m_innerCamTimerID] = 1;
 
-    m_outerCap = VideoCapture(0);
-    m_outerCap.set(CV_CAP_PROP_FPS, 25);
-
-    m_innerCap = VideoCapture(1);
-    m_innerCap.set(CV_CAP_PROP_FPS, 25);
+    m_outerCap = VideoCapture(1);
+    m_outerCap.set(CV_CAP_PROP_FPS, 30);
+    m_innerCap = VideoCapture(2);
+    m_innerCap.set(CV_CAP_PROP_FPS, 30);
 }
 
 MainWindow::~MainWindow()
@@ -77,21 +88,35 @@ void MainWindow::timerEvent(QTimerEvent *event)
         {
              cv::Mat image;
              m_outerCap >> image;
+             flip(image,image,1);
+             int nMinWidth = 50;
+             float fMinProb = 0.99;
+             int nCountThr = 20;
+
+             vector<Rect> hands;
+             cascade_hand_default.detectMultiScale(image,hands,1.01,30,0,Size(50,50),Size(300,300));
+             for(unsigned int fi=0;fi<hands.size();fi++)
+             {
+                 //putText(image,strWho,hands[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
+                 rectangle(image,hands[fi],Scalar(255,0,0),1);
+             }
+
+
              vector<Rect> faceRects = extractFace(image);
              string strWho;
              if(faceRects.size()>=2)
              {
                  strWho = "Other People Stand Back";
-                 for(int fi=0;fi<faceRects.size();fi++)
+                 for(unsigned int fi=0;fi<faceRects.size();fi++)
                  {
                      putText(image,strWho,faceRects[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
-                     rectangle(image,faceRects[fi],Scalar(0,0,255),3);
+                     rectangle(image,faceRects[fi],Scalar(0,0,255),1);
                  }
              }
              
              Rect faceRect = getLargestRect(faceRects);
              
-             if(faceRect.width > 50)
+             if(faceRect.width > nMinWidth)
              {
                  Mat imgFace = image(faceRect);
                  vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,1);
@@ -103,7 +128,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
                  size_t nSamgi = strWho.find("samgi");
                  size_t nJunhyun = strWho.find("junhyun");
                  if(nDaewoo==string::npos && nSamgi == string::npos
-                         && nJunhyun == string::npos && fWhoProb < 0.98)
+                         && nJunhyun == string::npos && fWhoProb < fMinProb)
                  {
                      strWho = "Others";
                      m_nVerificate=0;
@@ -111,10 +136,10 @@ void MainWindow::timerEvent(QTimerEvent *event)
                  else
                  {
                      m_nVerificate++;
-                     if(m_nVerificate<5)
+                     if(m_nVerificate<nCountThr)
                      {
                         std::ostringstream s;
-                        s <<  m_nVerificate*20;
+                        s <<  m_nVerificate*(100/nCountThr);
                         std::string per(s.str());
                         strWho += " : Processing Wait " + per + "%";
                      }
@@ -138,6 +163,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
         {
             cv::Mat image;
             m_innerCap >> image;
+            flip(image,image,1);
             vector<Rect> faceRects = extractFace(image);
             Rect faceRect = getLargestRect(faceRects);
             if(faceRect.width > 100)
@@ -188,19 +214,12 @@ vector<Rect> MainWindow::extractFace(Mat image)
 
     vector<cv::Rect> faces;
 
-
-    double scaleFactor = 1.1;
-    bool findLargestObject = false;
-    bool filterRects = true;
     cuda::GpuMat  Buf_gpu;
-    cascade_frontface_default->setFindLargestObject(findLargestObject);
-    cascade_frontface_default->setScaleFactor(scaleFactor);
-    cascade_frontface_default->setMinNeighbors((filterRects || findLargestObject) ? 4 : 0);
+
     cascade_frontface_default->detectMultiScale(grayframe, Buf_gpu);
     cascade_frontface_default->convert(Buf_gpu, faces);
 
     return faces;
-    //return getLargestRect(faces);
 }
 
 QImage MainWindow::putImage(const Mat& mat)

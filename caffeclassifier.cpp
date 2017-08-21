@@ -201,6 +201,15 @@ vector<cv::Mat> CaffeClassifier::OverSample(const cv::Mat img, int size)
         return vImgs;
     }
 
+    if(size == 2)
+    {
+        vImgs.push_back(img(vRect[0]));
+        Mat resizeImg;
+        resize(img,resizeImg,Size(tarW,tarH));
+        vImgs.push_back(resizeImg);
+        return vImgs;
+    }
+
     for (int i = 0; i < vRect.size(); i++)
     {
         vImgs.push_back(img(vRect[i]));

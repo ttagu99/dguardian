@@ -28,9 +28,15 @@ private:
     Ui::MainWindow *ui;
     int m_outerCamTimerID;
     int m_innerCamTimerID;
+    double m_scaleFactor;
+    bool m_findLargestObject;
+    bool m_filterRects;
 
     map<int,int> m_mapTimer;
     Ptr<cuda::CascadeClassifier> cascade_frontface_default;
+    Ptr<cuda::CascadeClassifier> cascade_sideface_default;
+    Ptr<cuda::CascadeClassifier> cascade_half_body_default;
+    CascadeClassifier cascade_hand_default;
 
     VideoCapture m_outerCap;
     VideoCapture m_innerCap;
@@ -39,6 +45,7 @@ private:
     Rect getLargestRect(vector<Rect> rects);
     vector<Rect> extractFace(Mat image);
     CaffeClassifier m_face_classifier;
+    CaffeClassifier m_hand_classifier;
 
     int m_nVerificate;
     

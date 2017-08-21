@@ -37,9 +37,11 @@ private:
     QImage putImage(const Mat& mat);
     
     Rect getLargestRect(vector<Rect> rects);
-    Rect extractFace(Mat image);
+    vector<Rect> extractFace(Mat image);
     CaffeClassifier m_face_classifier;
 
+    int m_nVerificate;
+    
 protected:
     void timerEvent(QTimerEvent *event);
 

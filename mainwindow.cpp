@@ -4,6 +4,12 @@
 #include <QDebug>
 #include "cvimagewidget.h"
 #include <caffe/caffe.hpp>
+#include <string>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sstream>
+
+
 using namespace cv;
 using namespace std;
 
@@ -21,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->label_outer_dscript->setFont(font);
     ui->label_inner_dscript->setFont(font);
 
-
+    m_nVerificate =0;
 
     if (cuda::getCudaEnabledDeviceCount() == 0)
     {
@@ -29,12 +35,12 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     string model_file = "../dguardian/deploy.prototxt";
-    string trained_file= "../dguardian/caffenet_face_iter_20000.caffemodel";
+    string trained_file= "../dguardian/caffenet_face_iter_110000.caffemodel";
     string mean_file= "../dguardian/train.binaryproto";
     string label_file= "../dguardian/synset_words.txt";
 
-    const int nBatchSize = 10;
-    const int nOverSample = 10;
+    const int nBatchSize = 1;
+    const int nOverSample = 1;
     int nGpuNum = 0;
 
 
@@ -44,15 +50,15 @@ MainWindow::MainWindow(QWidget *parent) :
     string frontfaceDefaultXml = "../dguardian/haarcascade_frontalface_default.xml";
     cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
 
-    m_outerCamTimerID = startTimer(1000/25);
-    m_innerCamTimerID = startTimer(1000/25);
+    m_outerCamTimerID = startTimer(1000/6);
+    m_innerCamTimerID = startTimer(1000/6);
     m_mapTimer[m_outerCamTimerID] = 0;
     m_mapTimer[m_innerCamTimerID] = 1;
 
-    m_outerCap = VideoCapture(1);
+    m_outerCap = VideoCapture(0);
     m_outerCap.set(CV_CAP_PROP_FPS, 25);
 
-    m_innerCap = VideoCapture(2);
+    m_innerCap = VideoCapture(1);
     m_innerCap.set(CV_CAP_PROP_FPS, 25);
 }
 
@@ -71,23 +77,59 @@ void MainWindow::timerEvent(QTimerEvent *event)
         {
              cv::Mat image;
              m_outerCap >> image;
-             Rect faceRect = extractFace(image);
-             if(faceRect.width > 100)
+             vector<Rect> faceRects = extractFace(image);
+             string strWho;
+             if(faceRects.size()>=2)
+             {
+                 strWho = "Other People Stand Back";
+                 for(int fi=0;fi<faceRects.size();fi++)
+                 {
+                     putText(image,strWho,faceRects[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
+                     rectangle(image,faceRects[fi],Scalar(0,0,255),3);
+                 }
+             }
+             
+             Rect faceRect = getLargestRect(faceRects);
+             
+             if(faceRect.width > 50)
              {
                  Mat imgFace = image(faceRect);
-                 vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,10);
-                 string strWho = v_who.front().first;
+                 vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,1);
+                 strWho = v_who.front().first;
                  
-                 size_t nDaewoo = strWho.find("Daewoo");
+                 float fWhoProb = v_who.front().second;
 
-                 if(nDaewoo==string::npos)
+                 size_t nDaewoo = strWho.find("Daewoo");
+                 size_t nSamgi = strWho.find("samgi");
+                 size_t nJunhyun = strWho.find("junhyun");
+                 if(nDaewoo==string::npos && nSamgi == string::npos
+                         && nJunhyun == string::npos && fWhoProb < 0.98)
                  {
                      strWho = "Others";
+                     m_nVerificate=0;
                  }
-                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,3.0,CV_RGB(0,255,0),3.0);
-
+                 else
+                 {
+                     m_nVerificate++;
+                     if(m_nVerificate<5)
+                     {
+                        std::ostringstream s;
+                        s <<  m_nVerificate*20;
+                        std::string per(s.str());
+                        strWho += " : Processing Wait " + per + "%";
+                     }
+                     else
+                     {
+                        strWho += " : Verificate Complete ";
+                        //m_nVerificate =0;
+                     }
+                 }
+                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
                  rectangle(image,faceRect,Scalar(0,0,255),3);
-
+             }
+             else
+             {
+                 m_nVerificate=0;
              }
              ui->label_outer->setPixmap(QPixmap::fromImage(putImage(image)));
             break;
@@ -96,7 +138,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
         {
             cv::Mat image;
             m_innerCap >> image;
-            Rect faceRect = extractFace(image);
+            vector<Rect> faceRects = extractFace(image);
+            Rect faceRect = getLargestRect(faceRects);
             if(faceRect.width > 100)
             {
                 rectangle(image,faceRect,Scalar(0,0,255),3);
@@ -105,7 +148,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
         }
         default :
         {
-                break;
+            break;
         }
     }
 }
@@ -135,7 +178,7 @@ Rect MainWindow::getLargestRect(vector<Rect> rects)
     return rects[retidx];
 }
 
-Rect MainWindow::extractFace(Mat image)
+vector<Rect> MainWindow::extractFace(Mat image)
 {
     cuda::GpuMat frame(image);
     cuda::GpuMat grayframe;
@@ -156,7 +199,8 @@ Rect MainWindow::extractFace(Mat image)
     cascade_frontface_default->detectMultiScale(grayframe, Buf_gpu);
     cascade_frontface_default->convert(Buf_gpu, faces);
 
-    return getLargestRect(faces);
+    return faces;
+    //return getLargestRect(faces);
 }
 
 QImage MainWindow::putImage(const Mat& mat)

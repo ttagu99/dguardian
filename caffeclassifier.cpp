@@ -183,7 +183,7 @@ vector<cv::Mat> CaffeClassifier::OverSample(const cv::Mat img, int size)
 
     cv::Mat flipImg;
     cv::flip(img, flipImg, 1);
-
+   
     vector<cv::Rect> vRect;
     vRect.push_back(cv::Rect(cenWOffset, cenHOffset, tarW, tarH));
     vRect.push_back(cv::Rect(0, 0, tarW, tarH));
@@ -194,7 +194,10 @@ vector<cv::Mat> CaffeClassifier::OverSample(const cv::Mat img, int size)
     vector<cv::Mat> vImgs;
     if (size == 1)
     {
-        vImgs.push_back(img(vRect[0]));
+        //vImgs.push_back(img(vRect[0]));
+        Mat resizeImg;
+        resize(img,resizeImg,Size(tarW,tarH));
+        vImgs.push_back(resizeImg);
         return vImgs;
     }
 
@@ -205,6 +208,13 @@ vector<cv::Mat> CaffeClassifier::OverSample(const cv::Mat img, int size)
         {
             vImgs.push_back(flipImg(vRect[i]));
         }
+    }
+
+    if(size==6)
+    {
+        Mat resizeImg;
+        resize(img,resizeImg,Size(tarW,tarH));
+        vImgs.push_back(resizeImg);
     }
 
     return vImgs;
@@ -345,21 +355,13 @@ vector<Prediction> CaffeClassifier::ClassifyOverSample(const cv::Mat img, int nu
     for (int i = labels_.size(); i < output_batch.size(); i++)
     {
         int idx = i% labels_.size();
-        if (isMinValueCode(labels_[idx]))
-        {
-            output[idx] = MIN(output[idx], output_batch[i]);
-        }
-        else
-        {
-            output[idx] = MAX(output[idx], output_batch[i]);
-        }
-        //output[idx] += output_batch[i];
+        output[idx] += output_batch[i];
     }
 
-    //for (int i = 0; i < labels_.size(); i++)
-    //{
-    //	output[i] /= num_overSample;
-    //}
+    for (int i = 0; i < labels_.size(); i++)
+    {
+    	output[i] /= num_overSample;
+    }
 
     std::vector<Prediction> prediction_single;
     std::vector<int> maxN = Argmax(output, num_classes);

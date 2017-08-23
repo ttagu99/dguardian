@@ -48,6 +48,7 @@ private:
     CaffeClassifier m_hand_classifier;
 
     int m_nVerificate;
+    string m_strPreWho;
     
 protected:
     void timerEvent(QTimerEvent *event);

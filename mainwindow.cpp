@@ -35,19 +35,28 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     string model_file = "../dguardian/deploy.prototxt";
-    string trained_file= "../dguardian/caffenet_face_iter_20000.caffemodel";
+    string trained_file= "../dguardian/caffenet_face_iter_145000.caffemodel";
     string mean_file= "../dguardian/train.binaryproto";
     string label_file= "../dguardian/synset_words.txt";
 
+
+    string model_file_hand = "../dguardian/deploy_hand.prototxt";
+    string trained_file_hand= "../dguardian/caffenet_hand_iter_99000.caffemodel";
+    string mean_file_hand= "../dguardian/train_hand.binaryproto";
+    string label_file_hand= "../dguardian/synset_words_hand.txt";
+
     const int nBatchSize = 1;
     int nGpuNum = 0;
-    m_scaleFactor = 1.01;
-    m_findLargestObject = true;
+    m_scaleFactor = 1.02;
+    m_findLargestObject = false;
     m_filterRects = true;
 
 
     m_face_classifier.loadModel(model_file, trained_file, mean_file, label_file, true, nBatchSize, nGpuNum);
     m_face_classifier.setFcn(false);
+
+    m_hand_classifier.loadModel(model_file_hand, trained_file_hand, mean_file_hand, label_file_hand, true, nBatchSize, nGpuNum);
+    m_hand_classifier.setFcn(false);
 
     string frontfaceDefaultXml = "../dguardian/haarcascade_frontalface_default.xml";
     cascade_frontface_default = cuda::CascadeClassifier::create(frontfaceDefaultXml);
@@ -67,9 +76,9 @@ MainWindow::MainWindow(QWidget *parent) :
     m_mapTimer[m_outerCamTimerID] = 0;
     m_mapTimer[m_innerCamTimerID] = 1;
 
-    m_outerCap = VideoCapture(1);
+    m_outerCap = VideoCapture(0);
     m_outerCap.set(CV_CAP_PROP_FPS, 30);
-    m_innerCap = VideoCapture(2);
+    m_innerCap = VideoCapture(1);
     m_innerCap.set(CV_CAP_PROP_FPS, 30);
 }
 
@@ -91,7 +100,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
              flip(image,image,1);
              int nMinWidth = 50;
              float fMinProb = 0.99;
-             int nCountThr = 20;
+             int nCountThr = 2;
 
              vector<Rect> hands;
              cascade_hand_default.detectMultiScale(image,hands,1.01,30,0,Size(50,50),Size(300,300));
@@ -109,9 +118,12 @@ void MainWindow::timerEvent(QTimerEvent *event)
                  strWho = "Other People Stand Back";
                  for(unsigned int fi=0;fi<faceRects.size();fi++)
                  {
-                     putText(image,strWho,faceRects[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
+                     putText(image,strWho,faceRects[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
                      rectangle(image,faceRects[fi],Scalar(0,0,255),1);
+                     m_nVerificate = 0;
+                     m_strPreWho = "Other";
                  }
+                 break;
              }
              
              Rect faceRect = getLargestRect(faceRects);
@@ -121,6 +133,11 @@ void MainWindow::timerEvent(QTimerEvent *event)
                  Mat imgFace = image(faceRect);
                  vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,1);
                  strWho = v_who.front().first;
+                 if(strWho!=m_strPreWho)
+                 {
+                     m_nVerificate = 0;
+                     m_strPreWho = strWho;
+                 }
                  
                  float fWhoProb = v_who.front().second;
 
@@ -141,16 +158,42 @@ void MainWindow::timerEvent(QTimerEvent *event)
                         std::ostringstream s;
                         s <<  m_nVerificate*(100/nCountThr);
                         std::string per(s.str());
-                        strWho += " : Processing Wait " + per + "%";
+                        strWho += " : Face Verification Wait " + per + "%";                        
                      }
                      else
                      {
-                        strWho += " : Verificate Complete ";
-                        //m_nVerificate =0;
+                        strWho += " : Face Verificate Complete ";
+
+                        Rect rectHand = faceRect;
+                        string strHand;
+                        rectHand.x += rectHand.width;
+                        if(rectHand.x+rectHand.width>image.cols)
+                        {
+                            strHand = " : Close Hand";
+                        }
+                        else
+                        {
+                            Mat imgHand=image(rectHand);
+
+                            vector<Prediction> v_hand = m_hand_classifier.ClassifyOverSample(imgHand,1,1);
+                            strHand = v_hand.front().first;
+                            if(strHand == "C\r")
+                            {
+                               strWho += " : PassWord Complete";
+                            }
+                            else if(strHand == "A\r")
+                            {
+                                strWho += " : Call Police";
+                            }
+                            else
+                            {
+                                strWho += " : " + strHand;
+                            }
+                        }
                      }
                  }
-                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
-                 rectangle(image,faceRect,Scalar(0,0,255),3);
+                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
+                 rectangle(image,faceRect,Scalar(0,0,255),1);
              }
              else
              {

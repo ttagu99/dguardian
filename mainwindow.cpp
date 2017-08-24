@@ -47,7 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     const int nBatchSize = 1;
     int nGpuNum = 0;
-    m_scaleFactor = 1.02;
+    m_scaleFactor = 1.01;
     m_findLargestObject = false;
     m_filterRects = true;
 
@@ -77,15 +77,241 @@ MainWindow::MainWindow(QWidget *parent) :
     m_mapTimer[m_innerCamTimerID] = 1;
 
     m_outerCap = VideoCapture(0);
-    m_outerCap.set(CV_CAP_PROP_FPS, 30);
+    m_outerCap.set(CV_CAP_PROP_FPS, 25);
+    m_outerCap.set(CV_CAP_PROP_FRAME_WIDTH,640);
+    m_outerCap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
     m_innerCap = VideoCapture(1);
-    m_innerCap.set(CV_CAP_PROP_FPS, 30);
+    m_innerCap.set(CV_CAP_PROP_FPS, 25);
+    m_innerCap.set(CV_CAP_PROP_FRAME_WIDTH,640);
+    m_innerCap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
+
+    m_meanOuter = Mat(640,480,CV_32FC3);
+    m_meanInner = Mat(640,480,CV_32FC3);
+
+    
+    unsigned int meanCnt = 10;
+    for(unsigned int i=0;i<meanCnt;i++)
+    {
+        Mat outer;
+        Mat inner;
+        m_outerCap >> outer;
+        m_innerCap >> inner;
+        
+        Mat outerDiv;
+        Mat innerDiv;
+        cv::divide(meanCnt,outer,outerDiv);
+        cv::divide(meanCnt,inner,innerDiv);
+
+        cv::add(outer,m_meanOuter,m_meanOuter);
+        cv::add(inner,m_meanInner,m_meanInner);
+
+    }
+
+    m_meanOuter /= meanCnt;
+    m_meanInner /= meanCnt;
+
+    blur(m_meanOuter,m_meanOuter,Size(5,5));
+    blur(m_meanInner,m_meanInner,Size(5,5));
+
+    imshow("Outer Mean",m_meanOuter);
+    imshow("inner Mean",m_meanInner);
+    waitKey(0);
 }
 
 MainWindow::~MainWindow()
 {
     killTimer(m_outerCamTimerID);
     delete ui;
+}
+
+void MainWindow::OuterFunc()
+{
+    cv::Mat image;
+    m_outerCap >> image;
+    flip(image,image,1);
+    int nMinWidth = 50;
+    float fMinProb = 0.99;
+    int nCountThr = 2;
+    string strMasterName = "Daewoo\r";
+    string strCriminalName = "samgi\r";
+    string strPostmanName = "junhyun\r";
+
+    string strCallCammand = "A\r";
+    string strOpenCommand = "C\r";
+
+
+    vector<Rect> faceRects = extractFace(image);
+    string strWho;
+    if(faceRects.size()>=2)
+    {
+        strWho = "Other People Stand Back";
+        m_nVerificate = 0;
+        m_strPreWho = "Other";
+        return dispLT(strWho,faceRects,image);
+    }
+
+    Rect faceRect = getLargestRect(faceRects);
+    if(faceRect.width< nMinWidth)
+    {
+        strWho = "Please Close your Face";
+        m_nVerificate=0;
+        return dispLT(strWho,faceRect,image);
+    }
+
+    Mat imgFace = image(faceRect);
+    vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,1);
+    strWho = v_who.front().first;
+    if(strWho!=m_strPreWho)
+    {
+        m_nVerificate = 0;
+        m_strPreWho = strWho;
+    }
+
+    float fWhoProb = v_who.front().second;
+    if(fWhoProb < fMinProb)
+    {
+        strWho = "Other People";
+        m_nVerificate=0;
+        return dispLT(strWho, faceRect, image);
+    }
+
+
+    if(strWho == strPostmanName)
+    {
+        strWho = strPostmanName;
+        if(m_strPreWho == strWho)
+        {
+            m_nVerificate++;
+            std::ostringstream s;
+            s <<  m_nVerificate*(100/nCountThr);
+            std::string per(s.str());
+            strWho += " : Face Verification Wait " + per + "%";
+        }
+        else
+        {
+            m_nVerificate = 0;
+            m_strPreWho = strWho;
+        }
+
+        if(m_nVerificate>=nCountThr)
+        {
+            strWho += ": Please put in the mail box";
+        }
+
+        return dispLT(strWho, faceRect, image);
+    }
+
+
+    if(strWho == strCriminalName)
+    {
+        strWho = strCriminalName;
+        if(m_strPreWho == strWho)
+        {
+            m_nVerificate++;
+            std::ostringstream s;
+            s <<  m_nVerificate*(100/nCountThr);
+            std::string per(s.str());
+            strWho += " : Face Verification Wait " + per + "%";
+        }
+        else
+        {
+            m_nVerificate = 0;
+            m_strPreWho = strWho;
+        }
+        if(m_nVerificate>=nCountThr)
+        {
+            strWho += ": Call Master !!";
+        }
+
+        return dispLT(strWho, faceRect, image);
+    }
+
+    if(strWho == strMasterName)
+    {
+        strWho = strMasterName;
+
+        Rect rectHand = faceRect;
+        string strHand;
+        rectHand.x += rectHand.width + 15;
+        rectHand.width *= 1.2;
+        rectHand.height *= 1.2;
+
+        if(rectHand.x + rectHand.width > image.cols)
+            rectHand.width = image.cols - rectHand.x;
+
+        if(rectHand.y + rectHand.height > image.rows)
+            rectHand.height = image.rows - rectHand.y;
+
+        rectangle(image,rectHand,Scalar(255,0,0),1);
+
+        Mat imgHand=image(rectHand);
+        //imshow("Debug", imgHand);
+        //waitKey(0);
+        vector<Prediction> v_hand = m_hand_classifier.ClassifyOverSample(imgHand,1,1);
+        strHand = v_hand.front().first;
+        float fHandProb = v_who.front().second;
+        if(m_strPreWho == strWho && m_strPreCommand == strHand && fHandProb > fMinProb)
+        {
+            m_nVerificate++;
+            std::ostringstream s;
+            s <<  m_nVerificate*(100/nCountThr);
+            std::string per(s.str());
+            strWho += " : Face and Mot Verfi Wait" + per + "%";
+        }
+        else
+        {
+            m_nVerificate = 0;
+            m_strPreWho = strWho;
+            m_strPreCommand = strHand;
+        }
+
+        if(m_nVerificate>=nCountThr)
+        {
+            if(strHand == strCallCammand)
+            {
+               strWho += ": Call Poli And Open!!";
+            }
+            else if(strHand == strOpenCommand)
+            {
+                strWho += ": Open !!";
+            }
+            else
+            {
+                strWho += ": PW Fail" + strHand;
+            }
+
+            m_nVerificate = 0;
+        }
+
+        return dispLT(strWho, faceRect, image);
+    }
+
+    return dispLT(strWho, faceRect, image);
+}
+
+void MainWindow::dispLT(string strMsg, Rect& rect, Mat& mat)
+{
+    putText(mat,strMsg,rect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
+    rectangle(mat,rect,Scalar(0,0,255),1);
+    return dispLT(mat);
+}
+void MainWindow::dispLT(string strMsg, vector<Rect>& rects, Mat& mat)
+{
+    for(unsigned int i=0;i<rects.size();i++)
+    {
+        putText(mat,strMsg,rects[i].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
+        rectangle(mat,rects[i],Scalar(0,0,255),1);
+    }
+    return dispLT(mat);
+}
+void MainWindow::dispLT(Mat& mat)
+{
+   ui->label_outer->setPixmap(QPixmap::fromImage(putImage(mat)));
+}
+
+void MainWindow::dispRT(Mat& mat)
+{
+   ui->label_inner->setPixmap(QPixmap::fromImage(putImage(mat)));
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -95,111 +321,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
     {
         case 0:
         {
-             cv::Mat image;
-             m_outerCap >> image;
-             flip(image,image,1);
-             int nMinWidth = 50;
-             float fMinProb = 0.99;
-             int nCountThr = 2;
-
-             vector<Rect> hands;
-             cascade_hand_default.detectMultiScale(image,hands,1.01,30,0,Size(50,50),Size(300,300));
-             for(unsigned int fi=0;fi<hands.size();fi++)
-             {
-                 //putText(image,strWho,hands[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),2.0);
-                 rectangle(image,hands[fi],Scalar(255,0,0),1);
-             }
-
-
-             vector<Rect> faceRects = extractFace(image);
-             string strWho;
-             if(faceRects.size()>=2)
-             {
-                 strWho = "Other People Stand Back";
-                 for(unsigned int fi=0;fi<faceRects.size();fi++)
-                 {
-                     putText(image,strWho,faceRects[fi].tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
-                     rectangle(image,faceRects[fi],Scalar(0,0,255),1);
-                     m_nVerificate = 0;
-                     m_strPreWho = "Other";
-                 }
-                 break;
-             }
-             
-             Rect faceRect = getLargestRect(faceRects);
-             
-             if(faceRect.width > nMinWidth)
-             {
-                 Mat imgFace = image(faceRect);
-                 vector<Prediction> v_who = m_face_classifier.ClassifyOverSample(imgFace,1,1);
-                 strWho = v_who.front().first;
-                 if(strWho!=m_strPreWho)
-                 {
-                     m_nVerificate = 0;
-                     m_strPreWho = strWho;
-                 }
-                 
-                 float fWhoProb = v_who.front().second;
-
-                 size_t nDaewoo = strWho.find("Daewoo");
-                 size_t nSamgi = strWho.find("samgi");
-                 size_t nJunhyun = strWho.find("junhyun");
-                 if(nDaewoo==string::npos && nSamgi == string::npos
-                         && nJunhyun == string::npos && fWhoProb < fMinProb)
-                 {
-                     strWho = "Others";
-                     m_nVerificate=0;
-                 }
-                 else
-                 {
-                     m_nVerificate++;
-                     if(m_nVerificate<nCountThr)
-                     {
-                        std::ostringstream s;
-                        s <<  m_nVerificate*(100/nCountThr);
-                        std::string per(s.str());
-                        strWho += " : Face Verification Wait " + per + "%";                        
-                     }
-                     else
-                     {
-                        strWho += " : Face Verificate Complete ";
-
-                        Rect rectHand = faceRect;
-                        string strHand;
-                        rectHand.x += rectHand.width;
-                        if(rectHand.x+rectHand.width>image.cols)
-                        {
-                            strHand = " : Close Hand";
-                        }
-                        else
-                        {
-                            Mat imgHand=image(rectHand);
-
-                            vector<Prediction> v_hand = m_hand_classifier.ClassifyOverSample(imgHand,1,1);
-                            strHand = v_hand.front().first;
-                            if(strHand == "C\r")
-                            {
-                               strWho += " : PassWord Complete";
-                            }
-                            else if(strHand == "A\r")
-                            {
-                                strWho += " : Call Police";
-                            }
-                            else
-                            {
-                                strWho += " : " + strHand;
-                            }
-                        }
-                     }
-                 }
-                 putText(image,strWho,faceRect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
-                 rectangle(image,faceRect,Scalar(0,0,255),1);
-             }
-             else
-             {
-                 m_nVerificate=0;
-             }
-             ui->label_outer->setPixmap(QPixmap::fromImage(putImage(image)));
+            OuterFunc();
             break;
         }
         case 1:
@@ -213,7 +335,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
             {
                 rectangle(image,faceRect,Scalar(0,0,255),3);
             }
-            ui->label_inner->setPixmap(QPixmap::fromImage(putImage(image)));
+            dispRT(image);
         }
         default :
         {

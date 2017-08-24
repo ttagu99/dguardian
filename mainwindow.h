@@ -41,13 +41,23 @@ private:
     VideoCapture m_outerCap;
     VideoCapture m_innerCap;
     QImage putImage(const Mat& mat);
-    
+
+    void dispLT(string strMsg, Rect& rect, Mat& mat);
+    void dispLT(string strMsg, vector<Rect>& rects, Mat& mat);
+    void dispLT(Mat& mat);
+    void dispRT(Mat& mat);
     Rect getLargestRect(vector<Rect> rects);
     vector<Rect> extractFace(Mat image);
     CaffeClassifier m_face_classifier;
     CaffeClassifier m_hand_classifier;
 
     int m_nVerificate;
+    string m_strPreWho;
+    string m_strPreCommand;
+    void OuterFunc();
+
+    Mat m_meanOuter;
+    Mat m_meanInner;
     
 protected:
     void timerEvent(QTimerEvent *event);

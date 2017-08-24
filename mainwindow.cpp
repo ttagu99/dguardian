@@ -76,46 +76,51 @@ MainWindow::MainWindow(QWidget *parent) :
     m_mapTimer[m_outerCamTimerID] = 0;
     m_mapTimer[m_innerCamTimerID] = 1;
 
-    m_outerCap = VideoCapture(0);
+    m_outerCap = VideoCapture(1);
     m_outerCap.set(CV_CAP_PROP_FPS, 25);
     m_outerCap.set(CV_CAP_PROP_FRAME_WIDTH,640);
     m_outerCap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
-    m_innerCap = VideoCapture(1);
+    m_innerCap = VideoCapture(2);
     m_innerCap.set(CV_CAP_PROP_FPS, 25);
     m_innerCap.set(CV_CAP_PROP_FRAME_WIDTH,640);
     m_innerCap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
 
-    m_meanOuter = Mat(640,480,CV_32FC3);
-    m_meanInner = Mat(640,480,CV_32FC3);
-
+   
     
     unsigned int meanCnt = 10;
-    for(unsigned int i=0;i<meanCnt;i++)
+
+
+    Mat outer;
+    Mat inner;
+
+    for(unsigned int i=0;i<3;i++)
     {
-        Mat outer;
-        Mat inner;
         m_outerCap >> outer;
         m_innerCap >> inner;
-        
-        Mat outerDiv;
-        Mat innerDiv;
-        cv::divide(meanCnt,outer,outerDiv);
-        cv::divide(meanCnt,inner,innerDiv);
-
-        cv::add(outer,m_meanOuter,m_meanOuter);
-        cv::add(inner,m_meanInner,m_meanInner);
-
     }
-
+    m_outerCap >> outer;
+    m_innerCap >> inner;
+    outer.convertTo(m_meanOuter,CV_32FC3);
+    inner.convertTo(m_meanInner,CV_32FC3);
+    for(unsigned int i=1;i<meanCnt;i++)
+    {
+        m_outerCap >> outer;
+        m_innerCap >> inner;
+        Mat outer32;
+        Mat inner32;
+        outer.convertTo(outer32,CV_32FC3);
+        inner.convertTo(inner32,CV_32FC3);
+        m_meanOuter += outer32;
+        m_meanInner += inner32;
+    }
     m_meanOuter /= meanCnt;
     m_meanInner /= meanCnt;
 
     blur(m_meanOuter,m_meanOuter,Size(5,5));
     blur(m_meanInner,m_meanInner,Size(5,5));
+    flip(m_meanOuter,m_meanOuter,1);
+    flip(m_meanInner,m_meanInner,1);
 
-    imshow("Outer Mean",m_meanOuter);
-    imshow("inner Mean",m_meanInner);
-    waitKey(0);
 }
 
 MainWindow::~MainWindow()
@@ -126,9 +131,34 @@ MainWindow::~MainWindow()
 
 void MainWindow::OuterFunc()
 {
-    cv::Mat image;
+    Mat image;
     m_outerCap >> image;
     flip(image,image,1);
+    Mat image32;
+    image.convertTo(image32,CV_32FC3);
+    image32 -= m_meanOuter;
+    Mat binImg;
+    double thresh = 30.0;
+
+    Mat grayImg;
+    image32.convertTo(grayImg,CV_8UC1);
+     imshow("gray",grayImg);
+    inRange(grayImg,Scalar(thresh),Scalar(-1*thresh),binImg);
+   imshow("bini",binImg);
+   waitKey(0);
+    vector<Mat> splited_frame;
+    split(image, splited_frame);
+    for (size_t i = 0; i < splited_frame.size(); i++)
+        multiply(splited_frame[i],binImg,splited_frame[i]);
+        //threshold(splited_frame[i], splited_frame[i], 5, 255, cv::THRESH_BINARY);
+    merge(splited_frame,image);
+    //threshold(image32,binImgP,thresh,1,CV_8UC3);
+    //threshold(image32,binImgM,-1*thresh,1,CV_8UC3);
+    //bitwise_or(binImgP,binImgM,binImg);
+    //binImg.convertTo(colImg,CV_8UC3);
+    //multiply(colImg,image,image);
+    //bitwise_not(image,colImg,image);
+    
     int nMinWidth = 50;
     float fMinProb = 0.99;
     int nCountThr = 2;

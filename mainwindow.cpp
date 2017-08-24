@@ -35,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     string model_file = "../dguardian/deploy.prototxt";
-    string trained_file= "../dguardian/caffenet_face_iter_20000.caffemodel";
+    string trained_file= "../dguardian/caffenet_face_iter_145000.caffemodel";
     string mean_file= "../dguardian/train.binaryproto";
     string label_file= "../dguardian/synset_words.txt";
 
@@ -54,7 +54,7 @@ MainWindow::MainWindow(QWidget *parent) :
     cascade_frontface_default->setFindLargestObject(m_findLargestObject);
     cascade_frontface_default->setScaleFactor(m_scaleFactor);
     cascade_frontface_default->setMinNeighbors(6);
-    cascade_frontface_default->setMinObjectSize(Size(50,50));
+    cascade_frontface_default->setMinObjectSize(Size(30,30));
     cascade_frontface_default->setMaxNumObjects(2);
     cascade_frontface_default->setMaxObjectSize(Size(500,400));
 

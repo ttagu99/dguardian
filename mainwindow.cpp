@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sstream>
-
+#include <QScrollBar>
 
 using namespace cv;
 using namespace std;
@@ -18,6 +18,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->centralWidget->setFixedSize(1340,1000);
+    ui->textBrowser->setGeometry(740,520,640,60);
+
+
 
     ui->label_outer_dscript->setText("Outer Camera");
     ui->label_inner_dscript->setText("Inner Camera");
@@ -39,11 +43,19 @@ MainWindow::MainWindow(QWidget *parent) :
     string mean_file= "../dguardian/train.binaryproto";
     string label_file= "../dguardian/synset_words.txt";
 
-
+    ui->textBrowser->setText(QString::fromStdString(model_file));
+    ui->textBrowser->append(QString::fromStdString(trained_file));
+    ui->textBrowser->append(QString::fromStdString(mean_file));
+    ui->textBrowser->append(QString::fromStdString(label_file));
     string model_file_hand = "../dguardian/deploy_hand.prototxt";
     string trained_file_hand= "../dguardian/caffenet_hand_iter_99000.caffemodel";
     string mean_file_hand= "../dguardian/train_hand.binaryproto";
     string label_file_hand= "../dguardian/synset_words_hand.txt";
+    ui->textBrowser->append(QString::fromStdString(model_file_hand));
+    ui->textBrowser->append(QString::fromStdString(trained_file_hand));
+    ui->textBrowser->append(QString::fromStdString(mean_file_hand));
+    ui->textBrowser->append(QString::fromStdString(label_file_hand));
+    QScrollBar *sb = ui->textBrowser->verticalScrollBar();
 
     const int nBatchSize = 1;
     int nGpuNum = 0;
@@ -64,7 +76,7 @@ MainWindow::MainWindow(QWidget *parent) :
     cascade_frontface_default->setScaleFactor(m_scaleFactor);
     cascade_frontface_default->setMinNeighbors(6);
     cascade_frontface_default->setMinObjectSize(Size(30,30));
-    cascade_frontface_default->setMaxNumObjects(2);
+    //cascade_frontface_default->setMaxNumObjects(2);
     cascade_frontface_default->setMaxObjectSize(Size(500,400));
 
 
@@ -76,16 +88,16 @@ MainWindow::MainWindow(QWidget *parent) :
     m_mapTimer[m_outerCamTimerID] = 0;
     m_mapTimer[m_innerCamTimerID] = 1;
 
-    m_outerCap = VideoCapture(1);
+    m_outerCap = VideoCapture(0);
     m_outerCap.set(CV_CAP_PROP_FPS, 25);
     m_outerCap.set(CV_CAP_PROP_FRAME_WIDTH,640);
     m_outerCap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
-    m_innerCap = VideoCapture(2);
+    m_innerCap = VideoCapture(1);
     m_innerCap.set(CV_CAP_PROP_FPS, 25);
     m_innerCap.set(CV_CAP_PROP_FRAME_WIDTH,640);
     m_innerCap.set(CV_CAP_PROP_FRAME_HEIGHT,480);
 
-   
+
     
     unsigned int meanCnt = 10;
 
@@ -98,28 +110,26 @@ MainWindow::MainWindow(QWidget *parent) :
         m_outerCap >> outer;
         m_innerCap >> inner;
     }
-    m_outerCap >> outer;
-    m_innerCap >> inner;
-    outer.convertTo(m_meanOuter,CV_32FC3);
-    inner.convertTo(m_meanInner,CV_32FC3);
+    m_outerCap >> m_meanOuter;
+    m_innerCap >> m_meanInner;
+
+    m_meanOuter /= meanCnt;
+    m_meanInner /= meanCnt;
     for(unsigned int i=1;i<meanCnt;i++)
     {
         m_outerCap >> outer;
         m_innerCap >> inner;
-        Mat outer32;
-        Mat inner32;
-        outer.convertTo(outer32,CV_32FC3);
-        inner.convertTo(inner32,CV_32FC3);
-        m_meanOuter += outer32;
-        m_meanInner += inner32;
+        m_meanOuter += outer / meanCnt;
+        m_meanInner += inner / meanCnt;
     }
-    m_meanOuter /= meanCnt;
-    m_meanInner /= meanCnt;
+
 
     blur(m_meanOuter,m_meanOuter,Size(5,5));
     blur(m_meanInner,m_meanInner,Size(5,5));
     flip(m_meanOuter,m_meanOuter,1);
     flip(m_meanInner,m_meanInner,1);
+
+    //imshow("meanOuter",m_meanOuter);
 
 }
 
@@ -134,34 +144,31 @@ void MainWindow::OuterFunc()
     Mat image;
     m_outerCap >> image;
     flip(image,image,1);
-    Mat image32;
-    image.convertTo(image32,CV_32FC3);
-    image32 -= m_meanOuter;
-    Mat binImg;
-    double thresh = 30.0;
+//    Mat imageP;
+//    Mat imageM;
+//    imageP = image - m_meanOuter;
+//    imageM = m_meanOuter - image;
 
-    Mat grayImg;
-    image32.convertTo(grayImg,CV_8UC1);
-     imshow("gray",grayImg);
-    inRange(grayImg,Scalar(thresh),Scalar(-1*thresh),binImg);
-   imshow("bini",binImg);
-   waitKey(0);
-    vector<Mat> splited_frame;
-    split(image, splited_frame);
-    for (size_t i = 0; i < splited_frame.size(); i++)
-        multiply(splited_frame[i],binImg,splited_frame[i]);
-        //threshold(splited_frame[i], splited_frame[i], 5, 255, cv::THRESH_BINARY);
-    merge(splited_frame,image);
-    //threshold(image32,binImgP,thresh,1,CV_8UC3);
-    //threshold(image32,binImgM,-1*thresh,1,CV_8UC3);
-    //bitwise_or(binImgP,binImgM,binImg);
-    //binImg.convertTo(colImg,CV_8UC3);
-    //multiply(colImg,image,image);
-    //bitwise_not(image,colImg,image);
+//    Mat imageMax;
+//    imageMax = cv::max(imageP,imageM);
+//    Mat imageGray;
+//    cvtColor(imageMax,imageGray,COLOR_RGB2GRAY);
+//    Mat imageBin;
+//    double thresh = 30.0;
+//    threshold(imageGray,imageBin,thresh,1,CV_8UC1);
+//    vector<Mat> splited_frame;
+//    vector<Mat> bin_frame;
+//    split(image, splited_frame);
+//    for (size_t i = 0; i < splited_frame.size(); i++)
+//    {
+//      Mat temp  = splited_frame[i].mul(imageBin);
+//      bin_frame.push_back(temp);
+//    }
+//    cv::merge(bin_frame,image);
     
     int nMinWidth = 50;
     float fMinProb = 0.99;
-    int nCountThr = 2;
+    int nCountThr = 5;
     string strMasterName = "Daewoo\r";
     string strCriminalName = "samgi\r";
     string strPostmanName = "junhyun\r";
@@ -251,6 +258,7 @@ void MainWindow::OuterFunc()
         if(m_nVerificate>=nCountThr)
         {
             strWho += ": Call Master !!";
+            m_nVerificate =0;
         }
 
         return dispLT(strWho, faceRect, image);

@@ -9,6 +9,10 @@
 #include "opencv2/cudaimgproc.hpp"
 #include "opencv2/cudawarping.hpp"
 #include "caffeclassifier.h"
+#include <QtWidgets>
+#include <QSound>
+
+class QMovie;
 
 using namespace std;
 using namespace cv;
@@ -31,7 +35,11 @@ private:
     double m_scaleFactor;
     bool m_findLargestObject;
     bool m_filterRects;
+    QMovie *pMovie;
 
+    void PlayAnimation(const QString &fileName);
+    void PlayAnimation(string &fileName);
+    void PlayAnimation(string &fileName, string &soundFile);
     map<int,int> m_mapTimer;
     Ptr<cuda::CascadeClassifier> cascade_frontface_default;
     Ptr<cuda::CascadeClassifier> cascade_sideface_default;
@@ -43,6 +51,7 @@ private:
     QImage putImage(const Mat& mat);
 
     void dispLT(string strMsg, Rect& rect, Mat& mat);
+    void dispRT(string strMsg, Rect& rect, Mat& mat);
     void dispLT(string strMsg, vector<Rect>& rects, Mat& mat);
     void dispLT(Mat& mat);
     void dispRT(Mat& mat);
@@ -54,11 +63,36 @@ private:
     int m_nVerificate;
     string m_strPreWho;
     string m_strPreCommand;
+    string m_postManInfoFile;
     void OuterFunc();
-
+    void InnerFunc();
     Mat m_meanOuter;
     Mat m_meanInner;
-    
+
+    string m_strOpenDoorPlay;
+    string m_strOpenDoorSound;
+    string m_strCallPoliPlay;
+    string m_strCallPoliSound;
+    string m_strGetBack;
+    string m_strGetBackSound;
+    string m_strPostManPlay;
+    string m_strPostManSound;
+
+    string strMasterName ;
+    string strCriminalName ;
+    string strPostmanName ;
+
+    string strCallCammand ;
+    string strOpenCommand ;
+
+    QSound *m_qsound;
+    bool m_nPlay;
+    int m_nOutWhoCnt;
+    vector<Rect> m_innerRects;
+
+    void funcNothing();
+private slots:
+    void StopPlay(void);
 protected:
     void timerEvent(QTimerEvent *event);
 

@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 QT       += core gui
-
+QT += multimedia
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Dguardian
@@ -24,6 +24,7 @@ LIBS += -L"/usr/lib" \
         -lopencv_videoio \
         -lopencv_imgproc -lopencv_cudaimgproc \
         -lopencv_cudaobjdetect \
+        -lopencv_objdetect \
         -lcaffe \
         -lboost_system \
         -lglog
@@ -44,4 +45,5 @@ DISTFILES += \
     haarcascade_frontalface_default.xml \
     train.binaryproto \
     deploy.prototxt \
-    synset_words.txt
+    synset_words.txt \
+    hand.xml

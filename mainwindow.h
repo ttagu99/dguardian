@@ -77,6 +77,7 @@ private:
     string m_strGetBackSound;
     string m_strPostManPlay;
     string m_strPostManSound;
+    string m_strQuestionSound;
 
     string strMasterName ;
     string strCriminalName ;

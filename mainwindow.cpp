@@ -83,7 +83,8 @@ MainWindow::MainWindow(QWidget *parent) :
     m_strGetBackSound = "../dguardian/a2002011001-e02.wav";
     m_strPostManPlay = "../dguardian/giphy.gif";
     m_strPostManSound= "../dguardian/a2002011001-e02.wav";
-    PlayAnimation(m_strOpenDoorPlay,m_strOpenDoorSound);
+    m_strQuestionSound = "../dguardian/a2002011001-e02.wav";
+    //PlayAnimation(m_strOpenDoorPlay,m_strOpenDoorSound);
 
 
     ui->textBrowser->moveCursor(QTextCursor::End);
@@ -226,6 +227,7 @@ void MainWindow::InnerFunc()
     {
         m_innerRects.push_back(faceRect);
         dispRT("Do You Want Open Door?",faceRect,image);
+        //QSound::play(QString::fromStdString(m_strQuestionSound));
         return;
     }
 

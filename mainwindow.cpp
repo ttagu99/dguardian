@@ -74,17 +74,27 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->textBrowser->append(QString::fromStdString(mean_file_hand));
     ui->textBrowser->append(QString::fromStdString(label_file_hand));
 
+    m_strOpenDoorPlay= "../dguardian/Door_Open.gif";
+    m_strOpenDoorSound= "../dguardian/문열림.wav";
+    m_strCallPoliPlay= "../dguardian/Call_Police.gif";
+    m_strCallPoliSound = "../dguardian/범죄자신고.wav";
+    m_strGetBack= "../dguardian/Warning.gif";
+    m_strGetBackSound = "../dguardian/뒤돌아.wav";
+    m_strPostManPlay = "../dguardian/Delivery.gif";
+    m_strPostManSound= "../dguardian/택배.wav";
+    m_strQuestionSound = "../dguardian/외출을물을때.wav";
 
-    m_strOpenDoorPlay= "../dguardian/giphy.gif";
-    m_strOpenDoorSound= "../dguardian/a2002011001-e02.wav";
-    m_strCallPoliPlay= "../dguardian/giphy.gif";
-    m_strCallPoliSound = "../dguardian/a2002011001-e02.wav";
-    m_strGetBack= "../dguardian/giphy.gif";
-    m_strGetBackSound = "../dguardian/a2002011001-e02.wav";
-    m_strPostManPlay = "../dguardian/giphy.gif";
-    m_strPostManSound= "../dguardian/a2002011001-e02.wav";
-    m_strQuestionSound = "../dguardian/a2002011001-e02.wav";
-    //PlayAnimation(m_strOpenDoorPlay,m_strOpenDoorSound);
+    m_strInnerOpenSound = "../dguardian/문을열겠음.wav";
+    m_strInnerOpenPlay = "../dguardian/GoOut.gif";
+    m_strInnerCloseSound= "../dguardian/문을열지않겠음.wav";
+    m_strInnerClosePlay= "../dguardian/Door_NoOpen.gif";
+    m_ClosedDoorImg = imread("../dguardian/door.jpg");
+    cv::resize(m_ClosedDoorImg,m_ClosedDoorImg,Size(640,480));
+    ui->play_label->setPixmap(QPixmap::fromImage(putImage(m_ClosedDoorImg)));
+    //imshow("door",m_strClosedDoorImg);
+    //PlayAnimation(m_strGetBack,m_strGetBackSound);
+
+
 
 
     ui->textBrowser->moveCursor(QTextCursor::End);
@@ -172,6 +182,7 @@ void MainWindow::StopPlay()
     {
         pMovie->stop();
         m_nPlay = false;
+        ui->play_label->setPixmap(QPixmap::fromImage(putImage(m_ClosedDoorImg)));
     }
 
 }
@@ -181,6 +192,12 @@ MainWindow::~MainWindow()
     delete m_qsound;
     killTimer(m_outerCamTimerID);
     delete ui;
+}
+
+void MainWindow::sendSms()
+{
+    ofstream outFile(m_postManInfoFile.c_str());
+    outFile.close();
 }
 
 void MainWindow::funcNothing()
@@ -205,7 +222,7 @@ void MainWindow::InnerFunc()
 
     if(faceRect.width<30)
     {
-        dispRT("Closer your face",faceRect,image);
+        dispRT("Come Closer face",faceRect,image);
         return;
     }
     int nThreshOutCnt = 10;
@@ -226,7 +243,8 @@ void MainWindow::InnerFunc()
     if(m_innerRects.size()<nCumFrame)
     {
         m_innerRects.push_back(faceRect);
-        dispRT("Do You Want Open Door?",faceRect,image);
+        dispRT("Do You Wana Open?",faceRect,image);
+
         //QSound::play(QString::fromStdString(m_strQuestionSound));
         return;
     }
@@ -247,17 +265,17 @@ void MainWindow::InnerFunc()
 
     }
     m_innerRects.clear();
-    if((maxX-minX)>(maxY-minY)*1.2)
+    if((maxX-minX)>(maxY-minY)*1.3)
     {
         //NO
         dispRT("Not Open Door",m_innerRects[m_innerRects.size()-1],image);
-
+        PlayAnimation(m_strInnerClosePlay,m_strInnerCloseSound);
     }
     else
     {
         //Yes
         dispRT("Open Door",m_innerRects[m_innerRects.size()-1],image);
-        PlayAnimation(m_strOpenDoorPlay,m_strOpenDoorSound);
+        PlayAnimation(m_strInnerOpenPlay,m_strInnerOpenSound);
     }
 
     m_nOutWhoCnt = 0;
@@ -319,7 +337,7 @@ void MainWindow::OuterFunc()
     Rect faceRect = getLargestRect(faceRects);
     if(faceRect.width< nMinWidth)
     {
-        strWho = "Please Close your Face";
+        strWho = "Come Closer Face";
         m_nVerificate=0;
         return dispLT(strWho,faceRect,image);
     }
@@ -363,8 +381,7 @@ void MainWindow::OuterFunc()
         if(m_nVerificate>=nCountThr)
         {
             strWho += ": Please put in the mail box";
-            ofstream outFile(m_postManInfoFile.c_str());
-            outFile.close();
+            sendSms();
             PlayAnimation(m_strPostManPlay,m_strPostManSound);
         }
 
@@ -395,6 +412,7 @@ void MainWindow::OuterFunc()
             strWho += ": Call Master !!";
             m_nVerificate =0;
             dispLT(strWho, faceRect, image);
+            sendSms();
             PlayAnimation(m_strCallPoliPlay,m_strCallPoliSound);
         }
         return;
@@ -430,7 +448,7 @@ void MainWindow::OuterFunc()
             std::ostringstream s;
             s <<  m_nVerificate*(100/nCountThr);
             std::string per(s.str());
-            strWho += " : Face and Mot Verfi Wait" + per + "%";
+            strWho += " : Process Verfying" + per + "%";
         }
         else
         {
@@ -443,13 +461,14 @@ void MainWindow::OuterFunc()
         {
             if(strHand == strCallCammand)
             {
-               strWho += ": Call Poli And Open!!";
+               strWho += ": Call Police And Open";
                dispLT(strWho, faceRect, image);
+               sendSms();
                PlayAnimation(m_strCallPoliPlay,m_strCallPoliSound);
             }
             else if(strHand == strOpenCommand)
             {
-                strWho += ": Open !!";
+                strWho += ": Open";
                 dispLT(strWho, faceRect, image);
                 PlayAnimation(m_strOpenDoorPlay,m_strOpenDoorSound);
                 //PlayAnimation(m_strOpenDoorPlay, "../dguardian/Casio-VZ-10M-Hard-Organ-C2.wav");
@@ -472,6 +491,11 @@ void MainWindow::dispRT(string strMsg, Rect& rect, Mat& mat)
 {
     string strOut = "inner : " + strMsg;
     ui->textBrowser->append(QString::fromStdString(strOut));
+    QFont font = ui->inner_out_label->font();
+    font.setPointSize(19);
+    font.setBold(true);
+    ui->inner_out_label->setFont(font);
+    ui->inner_out_label->setText(QString::fromStdString(strMsg));
     putText(mat,strMsg,rect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
     rectangle(mat,rect,Scalar(0,0,255),1);
     return dispRT(mat);
@@ -480,6 +504,11 @@ void MainWindow::dispLT(string strMsg, Rect& rect, Mat& mat)
 {
     string strOut = "Outer : " + strMsg;
     ui->textBrowser->append(QString::fromStdString(strOut));
+    QFont font = ui->outer_out_label->font();
+    font.setPointSize(19);
+    font.setBold(true);
+    ui->outer_out_label->setFont(font);
+    ui->outer_out_label->setText(QString::fromStdString(strMsg));
     putText(mat,strMsg,rect.tl(),FONT_HERSHEY_PLAIN,1.0,CV_RGB(0,255,0),1.0);
     rectangle(mat,rect,Scalar(0,0,255),1);
     return dispLT(mat);

@@ -71,6 +71,11 @@ private:
 
     string m_strOpenDoorPlay;
     string m_strOpenDoorSound;
+    string m_strInnerOpenSound;
+    string m_strInnerOpenPlay;
+    string m_strInnerCloseSound;
+    string m_strInnerClosePlay;
+
     string m_strCallPoliPlay;
     string m_strCallPoliSound;
     string m_strGetBack;
@@ -78,7 +83,7 @@ private:
     string m_strPostManPlay;
     string m_strPostManSound;
     string m_strQuestionSound;
-
+    Mat m_ClosedDoorImg;
     string strMasterName ;
     string strCriminalName ;
     string strPostmanName ;
@@ -92,6 +97,7 @@ private:
     vector<Rect> m_innerRects;
 
     void funcNothing();
+    void sendSms();
 private slots:
     void StopPlay(void);
 protected:

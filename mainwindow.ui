@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1327</width>
-    <height>632</height>
+    <height>739</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -81,8 +81,34 @@
      <rect>
       <x>10</x>
       <y>540</y>
-      <width>67</width>
-      <height>17</height>
+      <width>571</width>
+      <height>121</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TextLabel</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="outer_out_label">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>0</y>
+      <width>351</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TextLabel</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="inner_out_label">
+    <property name="geometry">
+     <rect>
+      <x>870</x>
+      <y>0</y>
+      <width>431</width>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">

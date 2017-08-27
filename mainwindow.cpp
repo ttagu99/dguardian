@@ -178,14 +178,53 @@ MainWindow::MainWindow(QWidget *parent) :
 
 void MainWindow::StopPlay()
 {
+    /*
     if(pMovie->currentFrameNumber()>=0 && pMovie->frameCount()-1 ==pMovie->currentFrameNumber())
     {
         pMovie->stop();
         m_nPlay = false;
         ui->play_label->setPixmap(QPixmap::fromImage(putImage(m_ClosedDoorImg)));
     }
+    */
+    int nCurFrame = pMovie->currentFrameNumber();
+    int nTotFrame = pMovie->frameCount();
+    //Actual Movie
+    if(nCurFrame >= 0)
+    {
+        //If this is Movie which Play Once
+        if(nCurFrame == 0 && m_nTotPlayCount == 1)
+        {
+            pMovie->setSpeed(nTotFrame);
+        }
+        //If this is FirstTime Play
+        if(nCurFrame == 0 && m_nTotPlayCount == -1)
+        {
+            //Calc Total Play Count
+            m_nTotPlayCount = static_cast<int>(100/nTotFrame);
+        }
+        if(nCurFrame == nTotFrame-1)
+        {
+            //Need More Replay
+            if(++m_nCurPlayCount < m_nTotPlayCount)
+            {
+                //Replay
+                pMovie->stop();
+                pMovie->start();
+            }
+            else
+            {
+                //Init Variable
+                m_nTotPlayCount = -1;
+                pMovie->stop();
 
+                m_nPlay = false;
+                ui->play_label->setPixmap(QPixmap::fromImage(putImage(m_ClosedDoorImg)));
+            }
+        }
+    }
 }
+
+
 
 MainWindow::~MainWindow()
 {
@@ -602,10 +641,42 @@ vector<Rect> MainWindow::extractFace(Mat image)
 
     return faces;
 }
+
+void MainWindow::PlayAnimation(const QString &fileName, int nCase)
+{
+    m_nPlay = true;
+    m_nCurPlayCount = 0;
+    //Long One Play
+    if(nCase == CASE_PLAYONCE)
+    {
+        m_nTotPlayCount = 1;
+        pMovie->stop();
+        ui->play_label->setMovie(pMovie);
+        pMovie->setFileName(fileName);
+        pMovie->start();
+    }
+    //Short Freq Play
+    if(nCase == CASE_PLAYFREQ)
+    {
+        pMovie->stop();
+        ui->play_label->setMovie(pMovie);
+        pMovie->setFileName(fileName);
+        pMovie->start();
+    }
+}
+
  void MainWindow::PlayAnimation(string &fileName)
  {
      PlayAnimation(QString::fromStdString(fileName));
  }
+
+
+ void MainWindow::PlayAnimation(string &fileName, string &soundFile, int nCase)
+ {
+    PlayAnimation(QString::fromStdString(fileName),nCase);
+    QSound::play(QString::fromStdString(soundFile));
+ }
+
  void MainWindow::PlayAnimation(string &fileName, string &soundFile)
  {
      PlayAnimation(QString::fromStdString(fileName));

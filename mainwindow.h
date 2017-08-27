@@ -12,6 +12,10 @@
 #include <QtWidgets>
 #include <QSound>
 
+
+#define CASE_PLAYONCE int(0)
+#define CASE_PLAYFREQ int(1)
+
 class QMovie;
 
 using namespace std;
@@ -40,6 +44,8 @@ private:
     void PlayAnimation(const QString &fileName);
     void PlayAnimation(string &fileName);
     void PlayAnimation(string &fileName, string &soundFile);
+    void PlayAnimation(string &fileName, string &soundFile, int nCase);
+    void PlayAnimation(const QString &fileName, int nCase);
     map<int,int> m_mapTimer;
     Ptr<cuda::CascadeClassifier> cascade_frontface_default;
     Ptr<cuda::CascadeClassifier> cascade_sideface_default;
@@ -98,6 +104,11 @@ private:
 
     void funcNothing();
     void sendSms();
+
+    int m_nCurPlayCount;
+    int m_nTotPlayCount;
+
+
 private slots:
     void StopPlay(void);
 protected:
